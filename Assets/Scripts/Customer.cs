@@ -14,6 +14,15 @@ public class Customer : MonoBehaviour
     float timer;
     GameObject food;
 
+    void Start()
+    {
+        Renderer body = GetComponent<Renderer>();
+        if (body != null)
+        {
+            body.material.color = Color.HSVToRGB(Random.value, 0.6f, 0.9f);
+        }
+    }
+
     void Update()
     {
         switch (state)

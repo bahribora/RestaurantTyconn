@@ -16,6 +16,7 @@ public class GameManager : MonoBehaviour
     int priceLevel = 0;
     int speedLevel = 0;
 
+    int LockedCount { get { return LockedTables == null ? 0 : LockedTables.Length; } }
     int PriceUpgradeCost { get { return 300 + priceLevel * 300; } }
     int SpeedUpgradeCost { get { return 250 + speedLevel * 250; } }
 
@@ -43,7 +44,8 @@ public class GameManager : MonoBehaviour
 
     void BuyTable()
     {
-        if (unlockedCount >= LockedTables.Length) return;
+        if (unlockedCount >= LockedCount) return;
+        if (LockedTables[unlockedCount] == null) return;
         if (!TrySpend(TableCost)) return;
 
         LockedTables[unlockedCount].SetActive(true);
@@ -79,7 +81,7 @@ public class GameManager : MonoBehaviour
 
         GUI.Label(new Rect(20, 20, 400, 50), "Para: " + Money + " TL", label);
 
-        if (unlockedCount >= LockedTables.Length)
+        if (unlockedCount >= LockedCount)
         {
             GUI.Label(new Rect(20, 70, 400, 40), "Tüm masalar açıldı", label);
         }
