@@ -4,13 +4,15 @@ public class Customer : MonoBehaviour
 {
     public Table TargetTable;
     public Vector3 ExitPoint;
+    public Dish Order;
     public float Speed = 3f;
     public float EatTime = 3f;
-    public int Payment = 50;
+    public float FoodScale = 2f;
 
     enum State { GoingToTable, Eating, Leaving }
     State state = State.GoingToTable;
     float timer;
+    GameObject food;
 
     void Update()
     {
@@ -20,7 +22,8 @@ public class Customer : MonoBehaviour
                 if (MoveTo(TargetTable.SeatPosition))
                 {
                     state = State.Eating;
-                    timer = EatTime;
+                    timer = EatTime * GameManager.Instance.EatTimeMultiplier;
+                    ServeFood();
                 }
                 break;
 
@@ -28,7 +31,10 @@ public class Customer : MonoBehaviour
                 timer -= Time.deltaTime;
                 if (timer <= 0f)
                 {
-                    GameManager.Instance.AddMoney(Payment);
+                    if (food != null) Destroy(food);
+                    int price = (Order != null && Order.Price > 0) ? Order.Price : 50;
+                    price = Mathf.RoundToInt(price * GameManager.Instance.PriceMultiplier);
+                    GameManager.Instance.AddMoney(price);
                     TargetTable.IsOccupied = false;
                     state = State.Leaving;
                 }
@@ -38,6 +44,14 @@ public class Customer : MonoBehaviour
                 if (MoveTo(ExitPoint)) Destroy(gameObject);
                 break;
         }
+    }
+
+    void ServeFood()
+    {
+        if (Order == null || Order.Prefab == null) return;
+        Vector3 pos = TargetTable.transform.position + Vector3.up * 0.55f;
+        food = Instantiate(Order.Prefab, pos, Quaternion.identity);
+        food.transform.localScale *= FoodScale;
     }
 
     bool MoveTo(Vector3 target)

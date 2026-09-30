@@ -6,7 +6,8 @@ public class CustomerSpawner : MonoBehaviour
     public Table[] Tables;
     public Transform SpawnPoint;
     public Transform ExitPoint;
-    public float Interval = 5f;
+    public Dish[] Menu;
+    public float Interval = 3f;
 
     float timer;
 
@@ -19,6 +20,7 @@ public class CustomerSpawner : MonoBehaviour
         Table freeTable = null;
         foreach (Table t in Tables)
         {
+            if (!t.gameObject.activeInHierarchy) continue;
             if (!t.IsOccupied) { freeTable = t; break; }
         }
         if (freeTable == null) return;
@@ -28,5 +30,10 @@ public class CustomerSpawner : MonoBehaviour
         Customer c = go.GetComponent<Customer>();
         c.TargetTable = freeTable;
         c.ExitPoint = ExitPoint.position;
+
+        if (Menu != null && Menu.Length > 0)
+        {
+            c.Order = Menu[Random.Range(0, Menu.Length)];
+        }
     }
 }
