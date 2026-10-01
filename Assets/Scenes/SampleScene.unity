@@ -956,6 +956,142 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 94d89b609cb0c8d4eb8451eb73ef11ba, type: 3}
   m_PrefabInstance: {fileID: 510085218}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &599564263
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.60532
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.78414
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_Name
+      value: kaya
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: a029e0f851f58ee4c9d67ac8629548bb, type: 2}
+    - target: {fileID: 5866666021909216657, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      propertyPath: m_WarningMessage
+      value: "\nBinding warning: Some generic clip(s) animate transforms that are already bound by a Humanoid avatar. These transforms can only be changed by Humanoid clips.\n\tTransform 'mixamorig:Hips'\n\tTransform 'mixamorig:LeftFoot'\n\tTransform 'mixamorig:LeftHandThumb2'\n\tTransform 'mixamorig:LeftHandIndex1'\n\tTransform 'mixamorig:LeftHandPinky2'\n\tTransform 'mixamorig:RightHandRing2'\n\tTransform 'mixamorig:Spine1'\n\tTransform 'mixamorig:LeftToeBase'\n\tTransform 'mixamorig:LeftHandThumb3'\n\tTransform 'mixamorig:RightArm'\n\tand more ...\n\tFrom animation clip 'Idle'\n\tFrom animation clip 'Sitting Idle'"
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 599564267}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 599564266}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 599564265}
+  m_SourcePrefab: {fileID: 100100000, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+--- !u!1 &599564264 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 0e57684d0a5e3a946aac2aeceef8de0e, type: 3}
+  m_PrefabInstance: {fileID: 599564263}
+  m_PrefabAsset: {fileID: 0}
+--- !u!136 &599564265
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599564264}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 1, z: 0}
+--- !u!114 &599564266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599564264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e6c33d9c7b39ae4dae9aadc889fa262, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerController
+--- !u!195 &599564267
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599564264}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1001 &702625653
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2083,8 +2219,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   RestaurantName: "Lezzet Dura\u011F\u0131"
-  Money: 1000
-  TableCost: 200
+  Money: 4
+  TableCost: 100
   LockedTables:
   - {fileID: 2131831243}
   - {fileID: 1949714527}
@@ -2093,10 +2229,13 @@ MonoBehaviour:
   - {fileID: 37757136}
   - {fileID: 732918504}
   - {fileID: 1950251483}
-  DecorCosts: 960000002c010000f4010000i
+  DecorCosts:
+  - 150
+  - 300
+  - 500
   DecorReputationBonus: 8
   DayLength: 90
-  DailyRent: 100
+  BaseDailyRent: 50
   WaiterCost: 300
   WaiterWage: 50
   PriceMultiplier: 1
@@ -2559,3 +2698,4 @@ SceneRoots:
   - {fileID: 37757140}
   - {fileID: 732918508}
   - {fileID: 1950251487}
+  - {fileID: 599564263}

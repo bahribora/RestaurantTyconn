@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class GameManager : MonoBehaviour
 {
@@ -7,20 +8,21 @@ public class GameManager : MonoBehaviour
 
     public string RestaurantName = "Lezzet Durağı";
 
-    public int Money = 500;
-    public int TableCost = 200;
+    // Sadeleştirilmiş Küçük Sayılı Ekonomi
+    public float Money = 4f;
+    public float TableCost = 3.5f;
     public GameObject[] LockedTables;
     public int Reputation = 50;
 
     public GameObject[] Decorations;
-    public int[] DecorCosts = { 150, 300, 500 };
+    public float[] DecorCosts = { 2f, 4.5f, 8f };
     public int DecorReputationBonus = 8;
 
     public float DayLength = 90f;
-    public int DailyRent = 100;
+    public float BaseDailyRent = 0.5f;
 
-    public int WaiterCost = 300;
-    public int WaiterWage = 50;
+    public float WaiterCost = 4f;
+    public float WaiterWage = 0.6f;
 
     public float PriceMultiplier = 1f;
     public float EatTimeMultiplier = 1f;
@@ -42,13 +44,13 @@ public class GameManager : MonoBehaviour
     static readonly string[] AchDesc =
     {
         "10 müşteri servis et", "50 müşteri servis et", "200 müşteri servis et",
-        "Toplam 2000 TL kazan", "5. güne ulaş", "5 yıldıza ulaş", "3 garson çalıştır"
+        "Toplam 20 TL kazan", "5. güne ulaş", "5 yıldıza ulaş", "3 garson çalıştır"
     };
-    static readonly int[] AchReward = { 100, 250, 600, 300, 200, 500, 300 };
+    static readonly float[] AchReward = { 1f, 2.5f, 6f, 3f, 2f, 5f, 3f };
 
     const int MaxLevel = 3;
     const int MaxWaiters = 3;
-    int startMoney;
+    float startMoney;
     int startReputation;
     int unlockedCount;
     int unlockedDishes = 1;
@@ -59,22 +61,31 @@ public class GameManager : MonoBehaviour
     float saveTimer;
 
     int totalServed;
-    int totalEarned;
+    float totalEarned;
     bool[] achDone = new bool[AchNames.Length];
     string bannerText = "";
     float bannerTimer;
     bool showAch;
+    bool showSettings; // Ayarlar Menüsü Durumu
+
+    // Çözünürlük ve Ayar Seçenekleri
+    int selectedResolutionIndex = 0;
+    bool isFullscreen = true;
+    readonly string[] resolutionNames = { "1920 x 1080", "1600 x 900", "1366 x 768", "1280 x 720" };
+    readonly int[] resWidths = { 1920, 1600, 1366, 1280 };
+    readonly int[] resHeights = { 1080, 900, 768, 720 };
 
     int day = 1;
     int currentEvent;
     float dayTimer;
-    int dayEarned;
+    float dayEarned;
     int dayServed;
     int dayAngry;
-    int rentPaid;
-    int wagesPaid;
+    float rentPaid;
+    float wagesPaid;
     bool showReport;
     bool inMenu = true;
+    bool isPaused = false;
 
     class Popup
     {
@@ -86,8 +97,11 @@ public class GameManager : MonoBehaviour
 
     int LockedCount { get { return LockedTables == null ? 0 : LockedTables.Length; } }
     int DecorTotal { get { return Decorations == null ? 0 : Decorations.Length; } }
-    int PriceUpgradeCost { get { return 300 + priceLevel * 300; } }
-    int SpeedUpgradeCost { get { return 250 + speedLevel * 250; } }
+
+    float PriceUpgradeCost { get { return 3.5f + priceLevel * 4f; } }
+    float SpeedUpgradeCost { get { return 3f + speedLevel * 3.5f; } }
+
+    public float CurrentDailyRent { get { return BaseDailyRent + (day * 0.15f); } }
 
     int EffectiveRep { get { return Mathf.Clamp(Reputation + decorCount * DecorReputationBonus, 0, 100); } }
 
@@ -99,10 +113,10 @@ public class GameManager : MonoBehaviour
     public float PatienceBonus { get { return 1f + 0.4f * waiters; } }
     public float SpeedBonus { get { return 1f + 0.15f * waiters; } }
 
-    int DecorCost(int i)
+    float DecorCost(int i)
     {
         if (DecorCosts != null && i < DecorCosts.Length) return DecorCosts[i];
-        return 150 + i * 150;
+        return 2f + i * 2.5f;
     }
 
     void Awake()
@@ -116,6 +130,7 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0f;
         startMoney = Money;
         startReputation = Reputation;
+        isFullscreen = Screen.fullScreen;
         LoadGame();
     }
 
@@ -127,6 +142,16 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            if (!inMenu && !showReport)
+            {
+                if (showSettings) CloseSettings();
+                else if (showAch) CloseAch();
+                else TogglePause();
+            }
+        }
+
         if (bannerTimer > 0f) bannerTimer -= Time.unscaledDeltaTime;
 
         for (int i = popups.Count - 1; i >= 0; i--)
@@ -135,7 +160,7 @@ public class GameManager : MonoBehaviour
             if (popups[i].Age > 1.2f) popups.RemoveAt(i);
         }
 
-        if (inMenu || showReport || showAch) return;
+        if (inMenu || showReport || showAch || showSettings || isPaused) return;
 
         dayTimer += Time.deltaTime;
         if (dayTimer >= DayLength) EndDay();
@@ -153,6 +178,12 @@ public class GameManager : MonoBehaviour
         SaveGame();
     }
 
+    void TogglePause()
+    {
+        isPaused = !isPaused;
+        Time.timeScale = isPaused ? 0f : 1f;
+    }
+
     void PlayCoin() { if (AudioManager.Instance != null) AudioManager.Instance.PlayCoin(); }
     void PlayAngry() { if (AudioManager.Instance != null) AudioManager.Instance.PlayAngry(); }
     void PlayBuy() { if (AudioManager.Instance != null) AudioManager.Instance.PlayBuy(); }
@@ -163,12 +194,12 @@ public class GameManager : MonoBehaviour
         currentEvent = (day <= 1) ? 0 : Random.Range(0, EventNames.Length);
     }
 
-    public void AddMoney(int amount)
+    public void AddMoney(float amount)
     {
         Money += amount;
     }
 
-    public bool TrySpend(int amount)
+    public bool TrySpend(float amount)
     {
         if (Money < amount) return false;
         Money -= amount;
@@ -180,7 +211,7 @@ public class GameManager : MonoBehaviour
         Reputation = Mathf.Clamp(Reputation + delta, 0, 100);
     }
 
-    public void RecordServed(int price, Vector3 pos)
+    public void RecordServed(float price, Vector3 pos)
     {
         AddMoney(price);
         ChangeReputation(1);
@@ -192,7 +223,7 @@ public class GameManager : MonoBehaviour
 
         Popup p = new Popup();
         p.Pos = pos;
-        p.Text = "+" + price + " TL";
+        p.Text = "+" + price.ToString("F1") + " TL";
         popups.Add(p);
 
         CheckAchievements();
@@ -212,7 +243,7 @@ public class GameManager : MonoBehaviour
             totalServed >= 10,
             totalServed >= 50,
             totalServed >= 200,
-            totalEarned >= 2000,
+            totalEarned >= 20f,
             day >= 5,
             Stars >= 5,
             waiters >= MaxWaiters
@@ -228,14 +259,15 @@ public class GameManager : MonoBehaviour
     {
         achDone[i] = true;
         AddMoney(AchReward[i]);
-        bannerText = "Başarım: " + AchNames[i] + "  (+" + AchReward[i] + " TL)";
+        bannerText = "Başarım: " + AchNames[i] + "  (+" + AchReward[i].ToString("F1") + " TL)";
         bannerTimer = 4f;
         PlayDayEnd();
     }
 
     void EndDay()
     {
-        rentPaid = Mathf.Min(DailyRent, Money);
+        float totalRent = CurrentDailyRent;
+        rentPaid = Mathf.Min(totalRent, Money);
         Money -= rentPaid;
         wagesPaid = Mathf.Min(waiters * WaiterWage, Money);
         Money -= wagesPaid;
@@ -250,11 +282,11 @@ public class GameManager : MonoBehaviour
         day++;
         RollEvent();
         dayTimer = 0f;
-        dayEarned = 0;
+        dayEarned = 0f;
         dayServed = 0;
         dayAngry = 0;
-        rentPaid = 0;
-        wagesPaid = 0;
+        rentPaid = 0f;
+        wagesPaid = 0f;
         showReport = false;
         Time.timeScale = 1f;
         PlayBuy();
@@ -265,14 +297,31 @@ public class GameManager : MonoBehaviour
     void StartGame()
     {
         inMenu = false;
+        isPaused = false;
+        showSettings = false;
         Time.timeScale = 1f;
         PlayBuy();
+    }
+
+    void ReturnToMainMenu()
+    {
+        SaveGame();
+        inMenu = true;
+        isPaused = false;
+        showReport = false;
+        showAch = false;
+        showSettings = false;
+        Time.timeScale = 0f;
     }
 
     void QuitGame()
     {
         SaveGame();
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
         Application.Quit();
+#endif
     }
 
     void OpenAch()
@@ -284,7 +333,19 @@ public class GameManager : MonoBehaviour
     void CloseAch()
     {
         showAch = false;
-        Time.timeScale = 1f;
+        Time.timeScale = isPaused ? 0f : 1f;
+    }
+
+    void OpenSettings()
+    {
+        showSettings = true;
+        Time.timeScale = 0f;
+    }
+
+    void CloseSettings()
+    {
+        showSettings = false;
+        Time.timeScale = (inMenu || isPaused) ? 0f : 1f;
     }
 
     void ApplyUpgrades()
@@ -319,7 +380,7 @@ public class GameManager : MonoBehaviour
             if (achDone[i]) mask |= 1 << i;
         }
 
-        PlayerPrefs.SetInt("money", Money);
+        PlayerPrefs.SetFloat("money", Money);
         PlayerPrefs.SetInt("tables", unlockedCount);
         PlayerPrefs.SetInt("dishes", unlockedDishes);
         PlayerPrefs.SetInt("priceLevel", priceLevel);
@@ -329,24 +390,24 @@ public class GameManager : MonoBehaviour
         PlayerPrefs.SetInt("rep", Reputation);
         PlayerPrefs.SetInt("day", day);
         PlayerPrefs.SetInt("totalServed", totalServed);
-        PlayerPrefs.SetInt("totalEarned", totalEarned);
+        PlayerPrefs.SetFloat("totalEarned", totalEarned);
         PlayerPrefs.SetInt("ach", mask);
         PlayerPrefs.Save();
     }
 
     void LoadGame()
     {
-        Money = PlayerPrefs.GetInt("money", Money);
+        Money = PlayerPrefs.GetFloat("money", 4f); // Varsayılan 4 TL
         unlockedCount = Mathf.Clamp(PlayerPrefs.GetInt("tables", 0), 0, LockedCount);
         unlockedDishes = Mathf.Max(1, PlayerPrefs.GetInt("dishes", 1));
         priceLevel = Mathf.Clamp(PlayerPrefs.GetInt("priceLevel", 0), 0, MaxLevel);
         speedLevel = Mathf.Clamp(PlayerPrefs.GetInt("speedLevel", 0), 0, MaxLevel);
         waiters = Mathf.Clamp(PlayerPrefs.GetInt("waiters", 0), 0, MaxWaiters);
         decorCount = Mathf.Clamp(PlayerPrefs.GetInt("decor", 0), 0, DecorTotal);
-        Reputation = Mathf.Clamp(PlayerPrefs.GetInt("rep", Reputation), 0, 100);
+        Reputation = Mathf.Clamp(PlayerPrefs.GetInt("rep", startReputation), 0, 100);
         day = Mathf.Max(1, PlayerPrefs.GetInt("day", 1));
         totalServed = PlayerPrefs.GetInt("totalServed", 0);
-        totalEarned = PlayerPrefs.GetInt("totalEarned", 0);
+        totalEarned = PlayerPrefs.GetFloat("totalEarned", 0f);
 
         int mask = PlayerPrefs.GetInt("ach", 0);
         for (int i = 0; i < achDone.Length; i++)
@@ -361,7 +422,7 @@ public class GameManager : MonoBehaviour
     void ResetGame()
     {
         PlayerPrefs.DeleteAll();
-        Money = startMoney;
+        Money = 4f; // SIFIRLANDIĞINDA 4 TL YAPAR
         Reputation = startReputation;
         unlockedCount = 0;
         unlockedDishes = 1;
@@ -370,16 +431,18 @@ public class GameManager : MonoBehaviour
         waiters = 0;
         decorCount = 0;
         totalServed = 0;
-        totalEarned = 0;
+        totalEarned = 0f;
         for (int i = 0; i < achDone.Length; i++) achDone[i] = false;
         bannerTimer = 0f;
         day = 1;
         dayTimer = 0f;
-        dayEarned = 0;
+        dayEarned = 0f;
         dayServed = 0;
         dayAngry = 0;
         showReport = false;
         showAch = false;
+        showSettings = false;
+        isPaused = false;
         Time.timeScale = inMenu ? 0f : 1f;
         ApplyUpgrades();
         ApplyTables();
@@ -503,7 +566,7 @@ public class GameManager : MonoBehaviour
 
     void DrawMenu(GUIStyle label, GUIStyle button)
     {
-        Rect box = new Rect(Screen.width / 2f - 260, Screen.height / 2f - 250, 520, 500);
+        Rect box = new Rect(1920 / 2f - 260, 1080 / 2f - 270, 520, 540);
         GUI.Box(box, "");
         GUI.Box(box, "");
 
@@ -516,26 +579,102 @@ public class GameManager : MonoBehaviour
         sub.alignment = TextAnchor.MiddleCenter;
         sub.fontSize = 22;
 
-        GUI.Label(new Rect(box.x, box.y + 30, box.width, 70), RestaurantName, title);
-        GUI.Label(new Rect(box.x, box.y + 100, box.width, 40), "Restoran Tycoon", sub);
+        GUI.Label(new Rect(box.x, box.y + 25, box.width, 70), RestaurantName, title);
+        GUI.Label(new Rect(box.x, box.y + 90, box.width, 40), "Restoran Tycoon", sub);
 
         string startText = day > 1 ? "Devam Et (Gün " + day + ")" : "Oyuna Başla";
-        if (GUI.Button(new Rect(box.x + 80, box.y + 170, 360, 60), startText, button))
+        if (GUI.Button(new Rect(box.x + 80, box.y + 150, 360, 55), startText, button))
             StartGame();
 
-        if (GUI.Button(new Rect(box.x + 80, box.y + 245, 360, 60), "Kaydı Sıfırla", button))
+        if (GUI.Button(new Rect(box.x + 80, box.y + 220, 360, 55), "Ayarlar (Çözünürlük)", button))
+            OpenSettings();
+
+        if (GUI.Button(new Rect(box.x + 80, box.y + 290, 360, 55), "Kaydı Sıfırla", button))
             ResetGame();
 
-        if (GUI.Button(new Rect(box.x + 80, box.y + 320, 360, 60), MusicText(), button))
+        if (GUI.Button(new Rect(box.x + 80, box.y + 360, 360, 55), MusicText(), button))
             ToggleMusic();
 
-        if (GUI.Button(new Rect(box.x + 80, box.y + 395, 360, 60), "Çıkış", button))
+        if (GUI.Button(new Rect(box.x + 80, box.y + 430, 360, 55), "Çıkış", button))
             QuitGame();
+    }
+
+    void DrawPauseMenu(GUIStyle label, GUIStyle button)
+    {
+        Rect box = new Rect(1920 / 2f - 220, 1080 / 2f - 270, 440, 540);
+        GUI.Box(box, "");
+        GUI.Box(box, "");
+
+        GUIStyle title = new GUIStyle(label);
+        title.alignment = TextAnchor.MiddleCenter;
+        title.fontSize = 38;
+        title.fontStyle = FontStyle.Bold;
+
+        GUI.Label(new Rect(box.x, box.y + 25, box.width, 60), "OYUN DURDURULDU", title);
+
+        if (GUI.Button(new Rect(box.x + 50, box.y + 95, 340, 55), "Devam Et", button))
+            TogglePause();
+
+        if (GUI.Button(new Rect(box.x + 50, box.y + 165, 340, 55), "Ayarlar", button))
+            OpenSettings();
+
+        if (GUI.Button(new Rect(box.x + 50, box.y + 235, 340, 55), MusicText(), button))
+            ToggleMusic();
+
+        if (GUI.Button(new Rect(box.x + 50, box.y + 305, 340, 55), "Kaydı Sıfırla", button))
+            ResetGame();
+
+        if (GUI.Button(new Rect(box.x + 50, box.y + 375, 340, 55), "Ana Menüye Dön", button))
+            ReturnToMainMenu();
+
+        if (GUI.Button(new Rect(box.x + 50, box.y + 445, 340, 55), "Çıkış", button))
+            QuitGame();
+    }
+
+    void DrawSettingsMenu(GUIStyle label, GUIStyle button)
+    {
+        Rect box = new Rect(1920 / 2f - 250, 1080 / 2f - 220, 500, 440);
+        GUI.Box(box, "");
+        GUI.Box(box, "");
+
+        GUIStyle title = new GUIStyle(label);
+        title.alignment = TextAnchor.MiddleCenter;
+        title.fontSize = 36;
+        title.fontStyle = FontStyle.Bold;
+
+        GUI.Label(new Rect(box.x, box.y + 20, box.width, 50), "AYARLAR", title);
+
+        GUIStyle line = new GUIStyle(label);
+        line.fontSize = 22;
+        GUI.Label(new Rect(box.x + 40, box.y + 90, 200, 40), "Çözünürlük:", line);
+
+        if (GUI.Button(new Rect(box.x + 200, box.y + 85, 250, 45), resolutionNames[selectedResolutionIndex], button))
+        {
+            selectedResolutionIndex = (selectedResolutionIndex + 1) % resolutionNames.Length;
+        }
+
+        string fsText = isFullscreen ? "Tam Ekran: EVET" : "Tam Ekran: HAYIR";
+        if (GUI.Button(new Rect(box.x + 100, box.y + 155, 300, 50), fsText, button))
+        {
+            isFullscreen = !isFullscreen;
+        }
+
+        if (GUI.Button(new Rect(box.x + 100, box.y + 230, 300, 55), "Uygula", button))
+        {
+            int w = resWidths[selectedResolutionIndex];
+            int h = resHeights[selectedResolutionIndex];
+            Screen.SetResolution(w, h, isFullscreen);
+        }
+
+        if (GUI.Button(new Rect(box.x + 100, box.y + 310, 300, 55), "Kapat", button))
+        {
+            CloseSettings();
+        }
     }
 
     void DrawReport(GUIStyle label, GUIStyle button)
     {
-        Rect box = new Rect(Screen.width / 2f - 240, Screen.height / 2f - 250, 480, 500);
+        Rect box = new Rect(1920 / 2f - 240, 1080 / 2f - 250, 480, 500);
         GUI.Box(box, "");
         GUI.Box(box, "");
 
@@ -551,11 +690,11 @@ public class GameManager : MonoBehaviour
 
         GUI.Label(new Rect(box.x, y, box.width, 50), "Gün " + day + " Bitti", title);
         GUI.Label(new Rect(x, y + 65, 430, 40), EventNames[currentEvent], line);
-        GUI.Label(new Rect(x, y + 105, 430, 40), "Kazanç: +" + dayEarned + " TL", line);
+        GUI.Label(new Rect(x, y + 105, 430, 40), "Kazanç: +" + dayEarned.ToString("F1") + " TL", line);
         GUI.Label(new Rect(x, y + 145, 430, 40), "Servis edilen: " + dayServed, line);
         GUI.Label(new Rect(x, y + 185, 430, 40), "Kızan müşteri: " + dayAngry, line);
-        GUI.Label(new Rect(x, y + 225, 430, 40), "Günlük kira: -" + rentPaid + " TL", line);
-        GUI.Label(new Rect(x, y + 265, 430, 40), "Maaşlar: -" + wagesPaid + " TL", line);
+        GUI.Label(new Rect(x, y + 225, 430, 40), "Günlük kira: -" + rentPaid.ToString("F1") + " TL", line);
+        GUI.Label(new Rect(x, y + 265, 430, 40), "Maaşlar: -" + wagesPaid.ToString("F1") + " TL", line);
         GUI.Label(new Rect(x, y + 305, 430, 40), "İtibar: " + Reputation + "/100  |  Yıldız: " + Stars + "/5", line);
 
         if (GUI.Button(new Rect(box.x + 90, box.y + box.height - 75, 300, 55), "Sonraki Gün", button))
@@ -564,7 +703,7 @@ public class GameManager : MonoBehaviour
 
     void DrawAchievements(GUIStyle label, GUIStyle button)
     {
-        Rect box = new Rect(Screen.width / 2f - 320, Screen.height / 2f - 260, 640, 520);
+        Rect box = new Rect(1920 / 2f - 320, 1080 / 2f - 260, 640, 520);
         GUI.Box(box, "");
         GUI.Box(box, "");
 
@@ -581,7 +720,7 @@ public class GameManager : MonoBehaviour
         {
             line.normal.textColor = achDone[i] ? new Color(0.4f, 1f, 0.4f) : Color.white;
             string mark = achDone[i] ? "[X] " : "[  ] ";
-            string text = mark + AchNames[i] + " - " + AchDesc[i] + " (+" + AchReward[i] + " TL)";
+            string text = mark + AchNames[i] + " - " + AchDesc[i] + " (+" + AchReward[i].ToString("F1") + " TL)";
             GUI.Label(new Rect(box.x + 25, box.y + 75 + i * 46, box.width - 40, 40), text, line);
         }
 
@@ -591,6 +730,14 @@ public class GameManager : MonoBehaviour
 
     void OnGUI()
     {
+        float targetWidth = 1920f;
+        float targetHeight = 1080f;
+
+        float scaleX = Screen.width / targetWidth;
+        float scaleY = Screen.height / targetHeight;
+        Matrix4x4 svMat = GUI.matrix;
+        GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scaleX, scaleY, 1f));
+
         GUIStyle label = new GUIStyle(GUI.skin.label);
         label.fontSize = 28;
         label.normal.textColor = Color.white;
@@ -601,24 +748,41 @@ public class GameManager : MonoBehaviour
         DrawPopups();
         DrawBanner();
 
-        if (inMenu)
+        if (showSettings)
         {
-            DrawMenu(label, button);
+            DrawSettingsMenu(label, button);
+            GUI.matrix = svMat;
             return;
         }
 
-        GUI.Label(new Rect(20, 20, 400, 50), "Para: " + Money + " TL", label);
+        if (inMenu)
+        {
+            DrawMenu(label, button);
+            GUI.matrix = svMat;
+            return;
+        }
+
+        if (isPaused)
+        {
+            DrawPauseMenu(label, button);
+            GUI.matrix = svMat;
+            return;
+        }
+
+        GUI.Label(new Rect(20, 20, 400, 50), "Para: " + Money.ToString("F1") + " TL", label);
         GUI.Label(new Rect(380, 20, 400, 50), "İtibar: " + Reputation + "/100", label);
 
         if (showReport)
         {
             DrawReport(label, button);
+            GUI.matrix = svMat;
             return;
         }
 
         if (showAch)
         {
             DrawAchievements(label, button);
+            GUI.matrix = svMat;
             return;
         }
 
@@ -637,7 +801,7 @@ public class GameManager : MonoBehaviour
         else
         {
             GUI.enabled = Money >= TableCost;
-            if (GUI.Button(new Rect(20, 70, 340, 50), "Masa Al (" + TableCost + " TL)", button))
+            if (GUI.Button(new Rect(20, 70, 340, 50), "Masa Al (" + TableCost.ToString("F1") + " TL)", button))
                 BuyTable();
             GUI.enabled = true;
         }
@@ -649,7 +813,7 @@ public class GameManager : MonoBehaviour
         else
         {
             GUI.enabled = Money >= PriceUpgradeCost;
-            string t = "Fiyat +%25 (" + PriceUpgradeCost + " TL) [" + priceLevel + "/" + MaxLevel + "]";
+            string t = "Fiyat +%25 (" + PriceUpgradeCost.ToString("F1") + " TL) [" + priceLevel + "/" + MaxLevel + "]";
             if (GUI.Button(new Rect(20, 130, 340, 50), t, button))
                 BuyPriceUpgrade();
             GUI.enabled = true;
@@ -662,7 +826,7 @@ public class GameManager : MonoBehaviour
         else
         {
             GUI.enabled = Money >= SpeedUpgradeCost;
-            string t = "Hızlı Servis (" + SpeedUpgradeCost + " TL) [" + speedLevel + "/" + MaxLevel + "]";
+            string t = "Hızlı Servis (" + SpeedUpgradeCost.ToString("F1") + " TL) [" + speedLevel + "/" + MaxLevel + "]";
             if (GUI.Button(new Rect(20, 190, 340, 50), t, button))
                 BuySpeedUpgrade();
             GUI.enabled = true;
@@ -679,7 +843,7 @@ public class GameManager : MonoBehaviour
             {
                 Dish next = spawner.Menu[unlockedDishes];
                 GUI.enabled = Money >= next.UnlockCost;
-                string t = "Yeni Yemek: " + next.Name + " (" + next.UnlockCost + " TL)";
+                string t = "Yeni Yemek: " + next.Name + " (" + next.UnlockCost.ToString("F1") + " TL)";
                 if (GUI.Button(new Rect(20, 250, 340, 50), t, button))
                     BuyDish();
                 GUI.enabled = true;
@@ -693,7 +857,7 @@ public class GameManager : MonoBehaviour
         else
         {
             GUI.enabled = Money >= WaiterCost;
-            string t = "Garson Al (" + WaiterCost + " TL, maaş " + WaiterWage + ") [" + waiters + "/" + MaxWaiters + "]";
+            string t = "Garson Al (" + WaiterCost.ToString("F1") + " TL, maaş " + WaiterWage.ToString("F1") + ") [" + waiters + "/" + MaxWaiters + "]";
             if (GUI.Button(new Rect(20, 310, 480, 50), t, button))
                 BuyWaiter();
             GUI.enabled = true;
@@ -709,21 +873,26 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            int cost = DecorCost(decorCount);
+            float cost = DecorCost(decorCount);
             GUI.enabled = Money >= cost;
-            string t = "Dekor Al (" + cost + " TL) [" + decorCount + "/" + DecorTotal + "]";
+            string t = "Dekor Al (" + cost.ToString("F1") + " TL) [" + decorCount + "/" + DecorTotal + "]";
             if (GUI.Button(new Rect(20, 370, 340, 50), t, button))
                 BuyDecor();
             GUI.enabled = true;
         }
 
-        if (GUI.Button(new Rect(20, 440, 200, 40), "Kaydı Sıfırla"))
+        if (GUI.Button(new Rect(20, 440, 160, 40), "Kaydı Sıfırla"))
             ResetGame();
 
-        if (GUI.Button(new Rect(230, 440, 200, 40), MusicText()))
+        if (GUI.Button(new Rect(190, 440, 180, 40), MusicText()))
             ToggleMusic();
 
-        if (GUI.Button(new Rect(440, 440, 200, 40), "Başarımlar"))
+        if (GUI.Button(new Rect(380, 440, 150, 40), "Ayarlar"))
+            OpenSettings();
+
+        if (GUI.Button(new Rect(540, 440, 160, 40), "Başarımlar"))
             OpenAch();
+
+        GUI.matrix = svMat;
     }
 }

@@ -1,62 +1,104 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class CustomerSpawner : MonoBehaviour
 {
-    public static CustomerSpawner Instance { get; private set; }
+    public static CustomerSpawner Instance;
 
-    public GameObject CustomerPrefab;
-    public Table[] Tables;
-    public Transform SpawnPoint;
-    public Transform ExitPoint;
+    [Header("Spawner Settings")]
+    public GameObject customerPrefab;
+    public List<Table> tables = new List<Table>();
+    public Transform spawnPoint;
+    public Transform exitPoint;
+
+    [Header("Menu & Upgrades")]
     public Dish[] Menu;
-    public float Interval = 4f;
-    public int MaxQueue = 4;
 
+    [Header("Timing & Queue")]
+    public float interval = 3f;
+    public int maxQueue = 4;
     public List<Customer> Queue = new List<Customer>();
-    float timer;
 
-    void Awake()
+    private float timer = 0f;
+
+    private void Awake()
     {
-        Instance = this;
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     void Update()
     {
-        timer += Time.deltaTime;
-        float interval = Interval / GameManager.Instance.SpawnRateMultiplier;
-        if (timer < interval) return;
-        timer = 0f;
-
-        if (Queue.Count >= MaxQueue) return;
-
-        GameObject go = Instantiate(CustomerPrefab, SpawnPoint.position, Quaternion.identity);
-        Customer c = go.GetComponent<Customer>();
-        c.ExitPoint = ExitPoint.position;
-
-        if (Menu != null && Menu.Length > 0)
+        if (customerPrefab == null || spawnPoint == null || tables == null || tables.Count == 0)
         {
-            int count = Mathf.Min(Menu.Length, GameManager.Instance.UnlockedDishes);
-            c.Order = Menu[Random.Range(0, count)];
+            return;
         }
 
-        Queue.Add(c);
+        timer += Time.deltaTime;
+
+        if (timer >= interval)
+        {
+            timer = 0f;
+            TrySpawnCustomer();
+        }
+    }
+
+    void TrySpawnCustomer()
+    {
+        if (Queue.Count >= maxQueue) return;
+
+        GameObject newCustomer = Instantiate(customerPrefab, spawnPoint.position, spawnPoint.rotation);
+
+        NavMeshAgent agent = newCustomer.GetComponent<NavMeshAgent>();
+        if (agent != null)
+        {
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(spawnPoint.position, out hit, 2.0f, NavMesh.AllAreas))
+            {
+                agent.Warp(hit.position);
+            }
+        }
+
+        Customer customerComp = newCustomer.GetComponent<Customer>();
+        if (customerComp != null && !Queue.Contains(customerComp))
+        {
+            Queue.Add(customerComp);
+        }
+    }
+
+    public Vector3 GetQueuePosition(Customer customer)
+    {
+        int index = Queue.IndexOf(customer);
+        if (index < 0) index = 0;
+
+        Vector3 spawnPos = spawnPoint != null ? spawnPoint.position : transform.position;
+        Vector3 forward = spawnPoint != null ? spawnPoint.forward : transform.forward;
+
+        return spawnPos + forward * (index * 1.5f);
     }
 
     public Table GetFreeTable()
     {
-        foreach (Table t in Tables)
+        foreach (Table table in tables)
         {
-            if (t == null || !t.gameObject.activeInHierarchy) continue;
-            if (!t.IsOccupied) return t;
+            if (table != null && !table.IsOccupied)
+            {
+                return table;
+            }
         }
         return null;
     }
 
-    public Vector3 GetQueuePosition(Customer c)
+    public Table GetAvailableTable()
     {
-        int i = Queue.IndexOf(c);
-        if (i < 0) i = 0;
-        return SpawnPoint.position + Vector3.forward * (4f + i * 1.2f);
+        return GetFreeTable();
     }
 }
